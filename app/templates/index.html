@@ -1,0 +1,50 @@
+<html>
+    <head>
+		<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+        <title>{{ title }} - i911</title>
+    </head>
+    <body>
+        <h1>Location for user {{ user.phone_hash }} is sent and is constantly updating.</h1>
+		<p id="loc"></p>
+        <script type="text/javascript" charset="utf-8">
+		    var x = document.getElementById("loc");
+	        var socket = io.connect('http://' + document.domain + ':' + location.port);
+			
+			socket.on('connect', function() {
+				console.log({'phone_hash': {{user.phone_hash}}});
+                socket.emit('connect event', {'phone_hash': {{user.phone_hash}}});
+            });
+			
+			window.setInterval(getLocation, 1000); // repeatedly call getLocation every second
+			
+			function getLocation() {
+			    if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(sendPosition);
+                } else { 
+                    x.innerHTML = "Geolocation is not supported by this browser.";
+                }
+			}
+			
+			function sendPosition(position) {
+				// send location to backend
+				socket.emit('location update event', 
+					{
+						'phone_hash': {{user.phone_hash}}, 
+						'coords': {
+							'latitude': position.coords.latitude,
+							'longitude': position.coords.longitude,
+							'speed': position.coords.speed
+						}
+					});
+				
+				// show location on client
+				showPosition(position);
+			}
+			
+			function showPosition(position) {
+			    x.innerHTML = "Latitude: " + position.coords.latitude 
+				            + "<br>Longitude: " + position.coords.longitude;
+			}
+		</script>
+	</body>
+</html>
