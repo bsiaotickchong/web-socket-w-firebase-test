@@ -4,10 +4,12 @@
         <title>{{ title }} - i911</title>
     </head>
     <body>
-        <h1>Location for user {{ user.phone_hash }} is sent and is constantly updating.</h1>
+        <h1 id="userMsg">Requesting user location. Please enable location services.</h1>
 		<p id="loc"></p>
         <script type="text/javascript" charset="utf-8">
 		    var x = document.getElementById("loc");
+            var msg = document.getElementById("userMsg");
+
 	        var socket = io.connect('http://' + document.domain + ':' + location.port);
 			
 			socket.on('connect', function() {
@@ -44,6 +46,7 @@
 			function showPosition(position) {
 			    x.innerHTML = "Latitude: " + position.coords.latitude 
 				            + "<br>Longitude: " + position.coords.longitude;
+                msg.innerHTML = "Broadcasting location... "
 			}
 		</script>
 	</body>
