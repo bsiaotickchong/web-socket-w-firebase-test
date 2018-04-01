@@ -17,7 +17,7 @@
                 socket.emit('connect event', {'phone_hash': {{user.phone_hash}}});
             });
 			
-			window.setInterval(getLocation, 1000); // repeatedly call getLocation every second
+			window.setInterval(getLocation, 5000); // repeatedly call getLocation every second
 			
 			function getLocation() {
 			    if (navigator.geolocation) {
