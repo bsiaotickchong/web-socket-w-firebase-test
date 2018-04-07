@@ -2,12 +2,11 @@ from app import app, socketio
 from flask import render_template
 
 import os
-import requests
+import urllib.request # use instead of "requests", b/c this is supported by Google App Engine
 import time
 import json
 
 FIREBASE_URL = os.environ.get('FIREBASE_URL')
-
 
 @app.route('/')
 def error():
@@ -25,13 +24,17 @@ def index(phone_hash):
 @app.route('/location/<phone_hash>')
 def get_loc_of_hash(phone_hash):
     # get the most recent location update of a phone hash from firebase
-    r = requests.get('{}/location/{}.json'.format(FIREBASE_URL, phone_hash))
+    r = urllib.request.Request('{}/location/{}.json'.format(FIREBASE_URL, phone_hash))
+    r.add_header('Content-Type','application/json')
+    resp = urllib.request.urlopen(r)
+    data = resp.read().decode(resp.headers.get_content_charset())       # read and decode with given charset
+    data = json.loads(data)                                             # convert to json/list type
 
-    if r.json() is None:
+    if data is None:
         return json.dumps(["No data available"])
     else:
         # @@@@@@@@ not sure why data comes back with a None in the first index... just skip it for now @@@@@@@@@@@
-        data = r.json()[1:]
+        data = data[1:]
         most_recent_index = len(data) - 1
         location_data = data[most_recent_index]
 
@@ -51,23 +54,28 @@ def handle_connect(json_data):
 
 
 @socketio.on('location update event')
-def handle_loc_update_event(json_data):
+def handle_loc_update_event(loc_data):
     print('Received data from socket...')
 
-    phone_hash = json_data['phone_hash']
+    phone_hash = loc_data['phone_hash']
+    location_url = '{}/location/{}.json'.format(FIREBASE_URL, phone_hash)
 
     # check if user already has location data in db
-    r = requests.get('{}/location/{}.json'.format(FIREBASE_URL, phone_hash))
+    r = urllib.request.Request(location_url)
+    r.add_header('Content-Type','application/json')
+    resp = urllib.request.urlopen(r)
+    data = resp.read().decode(resp.headers.get_content_charset())       # read and decode with given charset
+    data = json.loads(data)                                             # convert to json/list type
 
     # if user has no location data, then start iteration count at 1, otherwise append
     iteration = None
-    if r.json() is None:
+    if data is None:
         iteration = "1"
     else:
-        iteration = str(len(r.json()))
+        iteration = str(len(data))
 
-    lat = json_data['coords']['latitude']
-    lon = json_data['coords']['longitude']
+    lat = loc_data['coords']['latitude']
+    lon = loc_data['coords']['longitude']
     curr_timestamp = int(time.time())
 
     payload = {
@@ -78,15 +86,20 @@ def handle_loc_update_event(json_data):
             }
         }
 
-    payload = json.dumps(payload, sort_keys=True, indent=4)
-    location_url = '{}/location/{}.json'.format(FIREBASE_URL, phone_hash)
+    payload = json.dumps(payload, sort_keys=True)
 
     # write to firebase db
-    r = requests.patch(location_url, data=payload)
-    if r.status_code == 200:
+    r = urllib.request.Request(location_url)
+    r.get_method = lambda: 'PATCH'                                      # necessary hack to make PATCH requests with urllib.request
+    r.add_header('Content-Type','application/json')
+    r.add_header('Content-Length',len(payload.encode()))
+    resp = urllib.request.urlopen(r, data=payload.encode())
+    if resp.getcode() == 200:
         print('successfully wrote to db')
     else:
-        print('failed to write to db, reason: ', r.json())
+        data = resp.read().decode(resp.headers.get_content_charset())   # read and decode with given charset
+        data = json.loads(data)                                         # convert to json/list type
+        print('failed to write to db, reason: ', data)
 
 
 '''
