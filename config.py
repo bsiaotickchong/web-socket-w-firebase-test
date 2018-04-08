@@ -1,4 +1,4 @@
 import os
 
 class Config(object):
-	FIREBASE_KEY = os.environ.get('FIREBASE_KEY') or 'key_goes_here'
+    FIREBASE_URL = os.environ.get('FIREBASE_URL') or 'your key'

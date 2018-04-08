@@ -1,12 +1,17 @@
 from app import app, socketio
 from flask import render_template
+from config import Config
 
 import os
-import urllib.request # use instead of "requests", b/c this is supported by Google App Engine
+import urllib2# use instead of "requests", b/c this is supported by Google App Engine
 import time
 import json
 
-FIREBASE_URL = os.environ.get('FIREBASE_URL')
+#  FIREBASE_URL = app.config['FIREBASE_URL']
+f = open('client_secrets.json', 'r')
+client_secrets = json.loads(f.read())
+f.close()
+FIREBASE_URL = client_secrets['FIREBASE_URL']
 
 @app.route('/')
 def error():
@@ -24,9 +29,9 @@ def index(phone_hash):
 @app.route('/location/<phone_hash>')
 def get_loc_of_hash(phone_hash):
     # get the most recent location update of a phone hash from firebase
-    r = urllib.request.Request('{}/location/{}.json'.format(FIREBASE_URL, phone_hash))
+    r = urllib2.Request('{}/location/{}.json'.format(FIREBASE_URL, phone_hash))
     r.add_header('Content-Type','application/json')
-    resp = urllib.request.urlopen(r)
+    resp = urllib2.urlopen(r)
     data = resp.read().decode(resp.headers.get_content_charset())       # read and decode with given charset
     data = json.loads(data)                                             # convert to json/list type
 
@@ -54,17 +59,17 @@ def handle_connect(json_data):
 
 
 @socketio.on('location update event')
-def handle_loc_update_event(loc_data):
-    print('Received data from socket...')
+def handle_loc_update_event(json_data):
+    print('Received data from socket: ', json_data)
 
-    phone_hash = loc_data['phone_hash']
+    phone_hash = json_data['phone_hash']
     location_url = '{}/location/{}.json'.format(FIREBASE_URL, phone_hash)
 
     # check if user already has location data in db
-    r = urllib.request.Request(location_url)
+    r = urllib2.Request(location_url)
     r.add_header('Content-Type','application/json')
-    resp = urllib.request.urlopen(r)
-    data = resp.read().decode(resp.headers.get_content_charset())       # read and decode with given charset
+    resp = urllib2.urlopen(r)
+    data = resp.read().decode('ascii')       # read and decode with given charset
     data = json.loads(data)                                             # convert to json/list type
 
     # if user has no location data, then start iteration count at 1, otherwise append
@@ -74,8 +79,8 @@ def handle_loc_update_event(loc_data):
     else:
         iteration = str(len(data))
 
-    lat = loc_data['coords']['latitude']
-    lon = loc_data['coords']['longitude']
+    lat = json_data['coords']['latitude']
+    lon = json_data['coords']['longitude']
     curr_timestamp = int(time.time())
 
     payload = {
@@ -89,11 +94,11 @@ def handle_loc_update_event(loc_data):
     payload = json.dumps(payload, sort_keys=True)
 
     # write to firebase db
-    r = urllib.request.Request(location_url)
+    r = urllib2.Request(location_url)
     r.get_method = lambda: 'PATCH'                                      # necessary hack to make PATCH requests with urllib.request
     r.add_header('Content-Type','application/json')
     r.add_header('Content-Length',len(payload.encode()))
-    resp = urllib.request.urlopen(r, data=payload.encode())
+    resp = urllib2.urlopen(r, data=payload.encode())
     if resp.getcode() == 200:
         print('successfully wrote to db')
     else:
