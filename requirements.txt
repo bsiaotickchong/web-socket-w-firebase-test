@@ -16,7 +16,7 @@ EasyProcess==0.2.3
 entrypoints==0.2.3
 eventlet==0.22.1
 flake8==3.5.0
-Flask==0.12.2
+Flask==1.0
 Flask-SocketIO==2.9.6
 future==0.16.0
 gapic-google-cloud-datastore-v1==0.15.3
