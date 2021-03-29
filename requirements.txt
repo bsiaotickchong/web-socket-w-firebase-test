@@ -101,7 +101,7 @@ pycodestyle==2.3.1
 pycparser==2.18
 pycryptodome==3.4.11
 pyflakes==1.6.0
-Pygments==2.2.0
+Pygments==2.7.4
 pyOpenSSL==17.5.0
 pyscreenshot==0.4.2
 python-dateutil==2.6.1
