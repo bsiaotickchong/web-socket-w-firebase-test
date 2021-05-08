@@ -14,7 +14,7 @@ dill==0.2.7.1
 docopt==0.6.2
 EasyProcess==0.2.3
 entrypoints==0.2.3
-eventlet==0.22.1
+eventlet==0.31.0
 flake8==3.5.0
 Flask==0.12.2
 Flask-SocketIO==2.9.6
